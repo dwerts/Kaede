@@ -1,0 +1,3 @@
+$OBJECT  (C:\DOCUME~1\Admin\MYDOCU~1\Code\CTRL_P~1\obj\SPI_I2C.hex)
+$PRINT   (C:\DOCUME~1\Admin\MYDOCU~1\Code\CTRL_P~1\obj\SPI_I2C.lst)
+$INCLUDE (C:\DOCUME~1\Admin\MYDOCU~1\Code\CTRL_P~1\SPI_I2C.asm)
