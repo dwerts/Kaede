@@ -25,6 +25,8 @@ slew_decel = slew_accel
 scan_accel = 40 + 30 * (move_factor - 1)
 scan_decel = scan_accel  'Not sure if this section is even needed. Run a beta with this removed...
 
+'update: It was VERY much needed...
+
 slew_speed(max_slew)
 slew_acc(slew_accel)
 slew_dec(slew_decel)
