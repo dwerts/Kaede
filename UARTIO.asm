@@ -20,7 +20,7 @@
 ;____________________________________________________________________
                                                          ; SENDSTRING
 
-SENDSTRING:     ; sends ASCII string to UART starting at location
+SENDSTRING:     ; sends string to UART starting at location
                 ; DPTR and ending with a null (0) value
         NOP
         PUSH    ACC
@@ -41,21 +41,23 @@ IO0020: POP     B
 ;____________________________________________________________________
                                                            ; SENDCHAR
 
-SENDCHAR:       ; sends ASCII value contained in A to UART
+SENDCHAR:       ; sends A to UART
+	IF	(DEBUG=0)
         PUSH	ACC
-        MOV	A,#00		;TIMEOUT VAL: > 11 bits @ 34800 BAUD
+        MOV	A,#200		;TIMEOUT VAL
 SCHR0:
-        JB	TI,SCHR1
-        jmp	$+3    	;3 cycle delay
-        jmp	$+3    	;3 cycle delay
-        jmp	$+3    	;3 cycle delay
-        jmp	$+3    	;3 cycle delay
+        JB	TXRDY,SCHR1
       	DJNZ	ACC,SCHR0
 SCHR1:
+        MOV	A,#200		;TIMEOUT VAL
+SCHR2:
+        JNB	CTS,SCHR3
+      	DJNZ	ACC,SCHR2
+SCHR3:
 	POP	ACC
-        CLR     TI              ; must clear TI
+        CLR     TXRDY		;WILL BE SET BY TX COMPLETE INTERRUPT
         MOV     SBUF,A
-
+	ENDIF
         RET
 
 

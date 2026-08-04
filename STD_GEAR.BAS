@@ -24,7 +24,8 @@ gosub FINISHED_CLEANUP_SUB                      ' Section 13    done with inspec
 end
 
 '<<<<< END OF PROGRAM / START OF SUBROUTINES >>>>>
-'#region @INITIALIZE_SUB
+
+
 INITIALIZE_SUB
 '   *******************************************************************************************************************************************
 '   *******************************************************************************************************************************************
@@ -108,7 +109,6 @@ INITIALIZE_SUB
     z_scallop_padding = 0.0
     normal_path = 0                     ' normal_path: 1 = normal, -1 = inverted normal (scallop), 0 = transverse
     scal_act_helix = 0
-    plane_z_shift = 0
 
 ' PARAMETERS READ FOR THE MACHINE
     index_first = ?
@@ -399,8 +399,7 @@ INITIALIZE_SUB
     msg = "BUILD GEAR" + " " + str(xn[0]) + " " + str(yn[0]) + " " + str(zn[0]) + " " + str(xn[1]) + " " + str(yn[1]) + " " + str(zn[1])
     if (do_disp) chart(msg)
     return ' end of INITIALIZE_SUB
-'#endregion @INITIALIZE_SUB
-'#region @ESTABLISH_JOURNALS_SUB
+
 ESTABLISH_JOURNALS_SUB
 '   *******************************************************************************************************************************************
 '   *******************************************************************************************************************************************
@@ -470,8 +469,7 @@ REM setup vars are in setup corrd (cl or bt) w/o defl
 
     x_clear = .5 * tip_diameter + (probe_rad + safety) * neg_if_int
     return ' end of ESTABLISH_JOURNALS_SUB
-'#endregion @ESTABLISH_JOURNALS_SUB
-'#region @ESTABLISH_ZREF_HEIGHT_SUB
+
 ESTABLISH_ZREF_HEIGHT_SUB
 '   *******************************************************************************************************************************************
 '   *******************************************************************************************************************************************
@@ -579,8 +577,7 @@ ESTABLISH_ZREF_HEIGHT_SUB
 
     c2_adj = 0 ' adjustment of c2 position for transverse z height difference between cp[0] and cp[1]
     return ' end of ESTABLISH_ZREF_HEIGHT_SUB
-'#endregion @ESTABLISH_ZREF_HEIGHT_SUB
-'#region @TOOTH_SETUP_SUB
+
 TOOTH_SETUP_SUB
 '   *******************************************************************************************************************************************
 '   *******************************************************************************************************************************************
@@ -707,17 +704,16 @@ REM the next block must be after setup and before tests
 '   1404.29 mpw
     if (find_scal)
         m~ = str(stime() - st) + ",SET_IPTH = 20"
-        set_inpos_thresh(0.002)                        ' was 10
+        set_inpos_thresh(20)                        ' was 10
     else
         m~ = str(stime() - st) + ",SET_IPTH = 100"
-        set_inpos_thresh(0.010)
+        set_inpos_thresh(100)
     endif
 ' loosens the "in position threshhold" to speed up inspection
 ' index corrects for this tolerance and it should not affect helix or profile in significantly
 ' turn this back OFF after helix & profile in case this adversely affects related features or synchronizer teeth or something else (???)
     return ' end of TOOTH_SETUP_SUB
-'#endregion @TOOTH_SETUP_SUB
-'#region @INSPECT_INDEX_SUB
+
 INSPECT_INDEX_SUB
 '   *******************************************************************************************************************************************
 '   *******************************************************************************************************************************************
@@ -810,8 +806,7 @@ REM make coords cl if tests are cl but not setup
 	if(file_err = 0) close #2
 	
     return ' end of INSPECT_INDEX_SUB
-'#endregion @INSPECT_INDEX_SUB
-'#region @INSPECT_HELIX_PROFILE_SUB
+
 INSPECT_HELIX_PROFILE_SUB
 '   *******************************************************************************************************************************************
 '   *******************************************************************************************************************************************
@@ -883,8 +878,7 @@ INSPECT_HELIX_PROFILE_SUB
 
     slew_speed(max_slew)
     return ' end of INSPECT_HELIX_PROFILE_SUB
-'#endregion @INSPECT_HELIX_PROFILE_SUB
-'#region @INITIALIZE_CUTTER_VALUES_SUB
+
 INITIALIZE_CUTTER_VALUES_SUB
     if (is_shaper || is_broach)
 ' bke 1012.10 changed cond back to zref_type because edge_ta is not measured if zref_type > 1
@@ -907,8 +901,7 @@ REM f_xn = sin(faceangle / r_con) * cos(stepangle / r_con)
     o_yn = 0.0
     o_zn = sin(odclearangle / r_con)
     return ' end of INITIALIZE_CUTTER_VALUES_SUB
-'#endregion @INITIALIZE_CUTTER_VALUES_SUB
-'#region @INSPECT_FACE_OD_INDEX_SUB
+
 INSPECT_FACE_OD_INDEX_SUB
     if (insp_face_index || insp_od_index)
 '       *******************************************************************************************************************************************
@@ -979,8 +972,7 @@ INSPECT_FACE_OD_INDEX_SUB
         next i
     endif
     return ' end of INSPECT_FACE_OD_INDEX_SUB
-'#endregion @INSPECT_FACE_OD_INDEX_SUB
-'#region @INSPECT_FACE_ANGLE_SUB
+
 INSPECT_FACE_ANGLE_SUB
     if (insp_face_angle || insp_step_angle || insp_clear_angle)
 '       *******************************************************************************************************************************************
@@ -1120,8 +1112,7 @@ REM             if (is_broach && insp_step_angle)
         endif
     endif
     return ' end of INSPECT_FACE_ANGLE_SUB
-'#endregion @INSPECT_FACE_ANGLE_SUB
-'#region @ROOT_SCAN_SUB
+
 ROOT_SCAN_SUB
 ' if we verify that this is not necessary later, remove this
     m~ = str(stime() - st) + ",SET_IPTH = DEFAULT"    ' 1404.29 mpw   reset to default "in position threshhold"
@@ -1223,8 +1214,7 @@ REM bke 711.28
         next i
     endif
     return ' end of ROOT_SCAN_SUB
-'#endregion @ROOT_SCAN_SUB
-'#region @RELATED_FEATURES_SUB
+
 RELATED_FEATURES_SUB
     no_z_return = 0
 
@@ -1236,75 +1226,39 @@ RELATED_FEATURES_SUB
 '       *******************************************************************************************************************************************
         rfeat_reftooth = ?
         num_of_rfeats = ?
-        rfeat_reftype = ?		REM 0:CL of tooth, 1:CL of space, 2:LEFT flank, 3:RIGHT flank
+        rfeat_reftype = ?		REM 0:space, 1:tooth (bTimedToSpace = false)
 
         coord rfeat_coord
 
-        REM rotate by X pitches, where X is the reference tooth number (base 1)
-        r_1 = cp[0] - pitch * (rfeat_reftooth - 1) * tooth_direction
-        r_2 = cp[1] - pitch * (rfeat_reftooth - 1) * tooth_direction
-
-        REM rotate to get left and right flank contact points on centerline (y = 0.0)
-        switch (straight_sided)
-        case 0: 'involute
-            if (do_setup_cl = 1)
-                REM since we were "on center", rotate by the involute of the transverse pressure angle
-                r_1 = r_1 - INVO(tpai[0]) * neg_if_int
-                r_2 = r_2 + INVO(tpai[1]) * neg_if_int
-            else
-                REM since we were base tangent, rotate by the transverse pressure angle
-                r_1 = r_1 + tpai[0] * neg_if_int
-                r_2 = r_2 - tpai[1] * neg_if_int
+        r_1 = fmod(360.0 + cp[0] - pitch * (rfeat_reftooth - 1) * tooth_direction, 360.0)
+        if (cp0_rev <> 0.0) cp0_rev = cp0_rev - pitch * (rfeat_reftooth - 1) * tooth_direction / 360.0      REM adjust revolution by ref tooth
+        if (inspect_space_tooth = rfeat_reftype)
+            r_2 = fmod(360.0 + cp[1] - pitch * (rfeat_reftooth - 1) * tooth_direction, 360.0)               REM nominal position
+        else
+            if (rfeat_reftype = 0)                                                                          REM space, subtract 1 pitch from nominal
+                r_2 = fmod(360.0 + cp[1] - pitch * (rfeat_reftooth - 2) * tooth_direction, 360.0)
+            else                                                                                            REM tooth, add 1 pitch to nominal
+                r_2 = fmod(360.0 + cp[1] - pitch * rfeat_reftooth * tooth_direction, 360.0)
             endif
-            break
-        case 1: 'straight sided
-            r_1 = r_1 + tpai[0] * neg_if_int
-            r_2 = r_2 - tpai[1] * neg_if_int
-            break
-        case 2: 'parallel sided
-            r_1 = r_1 + tpai[0] * neg_if_int
-            r_2 = r_2 - tpai[1] * neg_if_int
-            break
-        endswitch
+        endif
 
-        REM make sure the r_1 and r_2 values are properly in the range of 0.0 <= r_val <= 360.0
-        r_1 = fmod(720.0 + r_1, 360.0)
-        r_2 = fmod(720.0 + r_2, 360.0)
-
-        setup_ang = 0.0
-        switch (rfeat_reftype)
-        case 0: REM center line of tooth
-            REM subtract 1 pitch from right flank if we setup on spaces
-            if (inspect_space_tooth = 0) r_2 = fmod(360.0 + r_2 - pitch * tooth_direction, 360.0)
-            setup_ang = CLEN(r_2, r_1)
-            ref_ang = r_1 + setup_ang * 0.5
-            break
-        case 1: REM center line of space
-            REM add 1 pitch to right flank if we setup on teeth
-            if (inspect_space_tooth = 1) r_2 = fmod(360.0 + r_2 + pitch * tooth_direction, 360.0)
-            setup_ang = CLEN(r_2, r_1)
-            ref_ang = r_1 + setup_ang * 0.5
-            break
-        case 2: REM (Penta) left flank
-            ref_ang = r_1
-            break
-        case 3: REM (Penta) right flank
-            ref_ang = r_2
-            break
-        endswitch
-		
         if use_q qbegin(1)
         move("x", tip_clear(x_clear)) REM bke 1212.11
-        if use_q qdecel()
-        move("c", ref_ang)
-        if use_q qgo()
+        setup_ang = CLEN(r_2, r_1)
+        ref_ang = r_1 + setup_ang * 0.5
+        if (cp0_rev <> 0.0) cp0_rev = cp0_rev + setup_ang * .5 / 360.0 REM adjust revolution by cl ref
 
-'       cp0_rev = cp0_rev + setup_ang * .5 / 360.0 REM adjust revolution by reference offset	REM disabled mpw 1809.14
-        cur_rev = get_axis_pos(3, 1) / 360.0
-        diff_rev = cp0_rev - cur_rev
-'       if (abs(fmod(abs(diff_rev), 2.0) - 1) < .5)
-'           inc_move("c", 360.0 * sgn(diff_rev))
-'       endif
+        if (cp0_rev <> 0.0)
+            if use_q qdecel()
+            move("c", ref_ang)
+            cur_rev = get_axis_pos(3, 1) / 360.0
+            diff_rev = cp0_rev - cur_rev
+            if (abs(fmod(abs(diff_rev), 2.0) - 1) < .5)
+                if use_q qdecel()
+                inc_move("c", 360.0 * sgn(diff_rev))
+            endif
+        endif
+        if use_q qgo()
 
         max_clearht = -999.9
         use_journals = 1 REM use to disable prompts/automate moves in ZREF_SETUP_SUB
@@ -1335,8 +1289,8 @@ RELATED_FEATURES_SUB
                 display_status("PREPARING TO INSPECT RELATED FEATURE #" + SINT(rf_idx))
 
                 switch (rfeat_type)
-                case 0: ' internal timing
-                case 1: ' external timing
+                case 0: ' space timing
+                case 1: ' tooth timing
                     gosub RFEAT_TIMING_SUB
                     break
                 case 2: ' internal xy circle
@@ -1363,7 +1317,7 @@ RELATED_FEATURES_SUB
                     break
                 case 10: ' Single Edge Timing
                     gosub RFEAT_EDGE_TIMING_SUB
-                    break
+                    break;
                 endswitch
             endif
         next rf_idx
@@ -1371,10 +1325,9 @@ RELATED_FEATURES_SUB
         if (max_clearht > -999.9) move("z", max_clearht)
     endif
     return ' end of RELATED_FEATURES_SUB
-'#endregion @RELATED_FEATURES_SUB
-'#region @RFEAT_TIMING_SUB
+
 RFEAT_TIMING_SUB
-    rfeat_val1 = ?          REM timing type 0 = involute, 1 = straight, 2 = parallel
+    rfeat_val1 = ?			REM timing type 0 = involute, 1 = straight, 2 = parallel
     rfeat_nomang = ?
     rfeat_idod = ?
     rfeat_pitchang = ?
@@ -1384,17 +1337,12 @@ RFEAT_TIMING_SUB
     rfeat_inspht = ?
     rfeat_clearht = ?
     rfeat_clearrad = ?      REM actually clearance RADIUS jjm 906.08 bke 1302.15
-    rfeat_val2 = ?          REM tooth profile(positive)/include(negative) angle or parallel sided width
-    rfeat_val3 = ?          REM 0:CL of tooth, 1:CL of space, 2:LEFT flank, 3:RIGHT flank
-
-    rfeat_nomang = -rfeat_nomang
+    rfeat_val2 = ?			REM tooth profile(positive)/include(negative) angle or parallel sided width
 
 REM bke 1302.15 rfeat_clearrad = rfeat_cleardia	REM this should cut down on confusion
 
     neg_if_int = 1.0
     if (rfeat_idod = 0.0) neg_if_int = -1.0
-
-    rfeat_ang_adjust = 0.0
 
     if (rfeat_clearht < max_clearht) rfeat_clearht = max_clearht
     if ((rfeat_idod = 0) && (rfeat_clearrad > (0.5 * tip_diameter))) rfeat_clearrad = (0.5 * tip_diameter) REM bke 910.12
@@ -1404,147 +1352,98 @@ REM bke 1302.15 rfeat_clearrad = rfeat_cleardia	REM this should cut down on conf
 
     if (rfeat_val1 = 0)				REM involute form
         dim was_bha[2] dim was_tpai[2] dim was_bcr[2]
-
-        was_straight_sided = straight_sided
         was_bha[0] = bha[0] was_bha[1] = bha[1] was_tpai[0] = tpai[0] was_tpai[1] = tpai[1] was_bcr[0] = bcr[0] was_bcr[1] = bcr[1]
+        was_straight_sided = straight_sided
 
-        straight_sided = 0
         bha[0] = 0.0 bha[1] = 0.0
+        straight_sided = 0
+
         if (rfeat_lead <> 0.0)
             bha[0] = atn(PI * rfeat_bcd / rfeat_lead) * r_con
             bha[1] = bha[0]
         endif
+
         tpai[0] = acos(rfeat_bcd / rfeat_inspdia) * r_con
         tpai[1] = tpai[0] REM in case we ever need dual geom					
         bcr[0] = .5 * rfeat_bcd
         bcr[1] = bcr[0]
 
-        REM nominal angle needs to be converted to be relative to centerline of tooth (external) or space (internal)
-        switch (rfeat_val3)
-        case 0: 'already on centerline
-            if (rfeat_idod = 0) rfeat_ang_adjust = 0.5 * rfeat_pitchang * neg_if_int
-            break
-        case 1: 'wrong centerline, rotate half of a pitch to get to centerline
-            if (rfeat_idod = 1) rfeat_ang_adjust = -0.5 * rfeat_pitchang * neg_if_int
-            break
-        case 2: 'left flank, rotate one quarter of a pitch to get to centerline
-            rfeat_ang_adjust = -0.25 * rfeat_pitchang * neg_if_int
-            break
-        case 3: 'right flank, rotate one quarter of a pitch to get to centerline
-            rfeat_ang_adjust = 0.25 * rfeat_pitchang * neg_if_int
-            break
-        endswitch
-        rfeat_nomang = fmod(360.0 + rfeat_nomang + rfeat_ang_adjust, 360.0)
+        xnorm = 0.0
+        ynorm = abs(cos(bha[0] / r_con))
+        znorm = -sin(bha[0] / r_con)					
 
-        if (rfeat_idod = 1) REM tooth bke 1202.29 restored from 910.08
-            x_clear = rfeat_clearrad + probe_diameter
+        x_pos = rfeat_bcd / 2.0
+        y_pos = -x_pos * tan(tpai[0] / r_con) * neg_if_int - probe_rad * ynorm
+
+        if (rfeat_type = 1) REM tooth bke 1202.29 restored from 910.08
+            c_pos = ref_ang + rfeat_nomang - tpai[0] * neg_if_int + 0.4 * rfeat_pitchang
+        else
+            c_pos = ref_ang + rfeat_nomang - tpai[0] * neg_if_int - 0.1 * rfeat_pitchang
+        endif
+REM bke 1202.29
+        if (rfeat_idod = 1)
+            x_clear = rfeat_clearrad + probe_rad
         else
             x_clear = rfeat_clearrad * cos (tpai[0] / r_con) - probe_diameter
         endif
 
-        display_status("INSPECTING RELATED FEATURE #" + SINT(rf_idx))
-
-        xnorm = 0.0
-        ynorm = abs(cos(bha[0] / r_con))
-        znorm = -sin(bha[0] / r_con)
-
-        x_pos = rfeat_bcd / 2.0
-        y_pos = -x_pos * tan(tpai[0] / r_con) * neg_if_int - probe_rad * ynorm
-        if (rfeat_val3 = 3) y_pos = x_pos * tan(tpai[1] / r_con) * neg_if_int - probe_rad * -ynorm
+        z_pos = rfeat_inspht - probe_rad * znorm
 
 '       if use_q qbegin(1)
         if (rfeat_clearht <> 0.0) && (rfeat_clearht > -999.9)
             move("z", rfeat_clearht) REM bke 910.20
 '           if use_q qdecel()
         endif
-        move("xy", x_clear, y_pos)
+        move("x", x_clear)
+'       if use_q qdecel()
+        move("yzc", y_pos, z_pos, c_pos)
+'       if use_q qdecel()
+        move("x", x_pos)
+'       if use_q qgo()
 
-' measure the left flank -- not used in right flank only timing (rfeat_val3 == 4)
-        if (rfeat_val3 <> 3)
-            z_pos = rfeat_inspht - probe_rad * znorm
+        gosub UNLOAD_PROBE_SUB
 
-            if (rfeat_idod = 1) REM tooth bke 1202.29 restored from 910.08
-                c_pos = fmod(360.0 + ref_ang + rfeat_nomang - tpai[0] * neg_if_int + 0.4 * rfeat_pitchang, 360.0)
-            else
-                pitch_adjust = 0.0
-                if (rfeat_val3 = 0) pitch_adjust = rfeat_pitchang
-                c_pos = fmod(360.0 + ref_ang + rfeat_nomang - pitch_adjust - tpai[0] * neg_if_int - 0.1 * rfeat_pitchang, 360.0)
-            endif
+        display_status("INSPECTING RELATED FEATURE #" + SINT(rf_idx))
 
-'           if use_q qdecel()
-            move("yzc", y_pos, z_pos, c_pos)
-'           if use_q qdecel()
-            move("x", x_pos)
-'           if use_q qgo()
+        gosub FLANK_SETUP_SUB
+        read_dsp(axis, oversamp)
+        f_1 = axis[3]
 
-            gosub UNLOAD_PROBE_SUB
-            gosub FLANK_SETUP_SUB
-            read_dsp(axis, oversamp)
-            f_1 = axis[3]
-
-            REM rotate this value by transverse pressure angle to put this point on centerline
-            f_1 = fmod(360.0 + f_1 + tpai[0] * neg_if_int, 360.0)
-
-'           if use_q qbegin(1)
-            move("x", x_clear)
+        xnorm = 0.0
+        ynorm = -ynorm
+        znorm = -znorm
+        y_pos = x_pos * tan(tpai[1] / r_con) * neg_if_int - probe_rad * ynorm
+        z_pos = rfeat_inspht - probe_rad * znorm
+REM bke 1202.29
+        if (rfeat_type = 1) REM tooth bke 1202.29 restored from 910.08
+            c_pos = ref_ang + rfeat_nomang + tpai[1] * neg_if_int - 0.4 * rfeat_pitchang
+        else
+            c_pos = ref_ang + rfeat_nomang + tpai[1] * neg_if_int + 0.1 * rfeat_pitchang
         endif
 
-' measure the right flank -- not used in left flank only timing (rfeat_val3 == 3)
-        if (rfeat_val3 <> 2)
-            xnorm = 0.0
-            ynorm = -ynorm
-            znorm = -znorm
-			
-            y_pos = x_pos * tan(tpai[1] / r_con) * neg_if_int - probe_rad * ynorm
-            z_pos = rfeat_inspht - probe_rad * znorm
+'       if use_q qbegin(1)
+        move("x", x_clear)
+'       if use_q qdecel()
+        move("yzc", y_pos, z_pos, c_pos)
+'       if use_q qdecel()
+        move("x", x_pos)
+'       if use_q qgo()
 
-            if (rfeat_idod = 1) REM tooth bke 1202.29 restored from 910.08
-                pitch_adjust = 0.0
-                if (rfeat_val3 = 1) pitch_adjust = rfeat_pitchang
-                c_pos = fmod(360.0 + ref_ang + rfeat_nomang + pitch_adjust + tpai[1] * neg_if_int - 0.4 * rfeat_pitchang, 360.0)
-            else
-                c_pos = fmod(360.0 + ref_ang + rfeat_nomang + tpai[1] * neg_if_int + 0.1 * rfeat_pitchang, 360.0)
-            endif
+        gosub UNLOAD_PROBE_SUB
+        gosub FLANK_SETUP_SUB
+        read_dsp(axis, oversamp)
+        f_2 = axis[3]
 
-'           if use_q qdecel()
-            move("yzc", y_pos, z_pos, c_pos)
-'           if use_q qdecel()
-            move("x", x_pos)
-'           if use_q qgo()
-
-            gosub UNLOAD_PROBE_SUB
-            gosub FLANK_SETUP_SUB
-            read_dsp(axis, oversamp)
-            f_2 = axis[3]
-
-            REM rotate this value by transverse pressure angle to put this point on centerline
-            f_2 = fmod(360.0 + f_2 - tpai[1] * neg_if_int, 360.0)
-
-'           if use_q qbegin(1)
-            move("x", x_clear)
-        endif
-		
+'       if use_q qbegin(1)
+        move("x", x_clear)
         if ((rfeat_clearht <> 0.0) && (rfeat_clearht > -999.9))
 '           if use_q qdecel()
             move("z", rfeat_clearht) REM bke 910.20
         endif
 '       if use_q qgo()
 
-        switch (rfeat_val3)
-        case 0: 'centerline of tooth
-        case 1: 'centerline of space
-            setup_ang = CLEN(f_2, f_1)
-            rfeat_ang = CLEN(f_1 + setup_ang * 0.5, ref_ang)
-            break
-        case 2: 'left flank only
-            rfeat_ang = CLEN(f_1, ref_ang)
-            break
-        case 3: 'right flank only
-            rfeat_ang = CLEN(f_2, ref_ang)
-            break
-        endswitch
-
-        rfeat_ang = -rfeat_ang
+        setup_ang = CLEN(f_2, f_1)
+        rfeat_ang = CLEN(f_1 + setup_ang * 0.5, ref_ang)
 
         msg = "PROCESS POINT "+str(rfeat_ang)
         bha[0] = was_bha[0] bha[1] = was_bha[1] tpai[0] = was_tpai[0] tpai[1] = was_tpai[1] bcr[0] = was_bcr[0] bcr[1] = was_bcr[1]
@@ -1664,15 +1563,12 @@ REM bke 1302.15 rfeat_clearrad = rfeat_cleardia	REM this should cut down on conf
             endif
             setup_ang = CLEN(f_2, f_1)
             rfeat_ang = CLEN(f_1 + setup_ang * 0.5, ref_ang)
-
-            rfeat_ang = -rfeat_ang
-
             msg = "PROCESS POINT "+str(rfeat_ang)
         else						REM parallel sided
             x_clear = rfeat_clearrad - probe_diameter * dir
 
-            if (rfeat_val2 < 0.0) REM ps space bke 909.28
-                y_off[0] = 0.25 * (rfeat_val2 + probe_diameter)
+            if (rfeat_type = 0) REM ps space bke 909.28
+                y_off[0] = 0.0
             else
                 y_off[0] = 0.6 * (rfeat_val2 + probe_diameter)
             endif
@@ -1696,7 +1592,7 @@ REM bke 1302.15 rfeat_clearrad = rfeat_cleardia	REM this should cut down on conf
             y_pos_1 = position[1]
 
 '           if use_q qbegin(1)
-            if (rfeat_val2 > 0.0)
+            if (rfeat_type = 1)
                 move("x", x_clear)
 '               if use_q qdecel()
             endif
@@ -1721,34 +1617,24 @@ REM bke 1302.15 rfeat_clearrad = rfeat_cleardia	REM this should cut down on conf
             endif
 '           if use_q qgo()
 
-            rfeat_ang = atn2(.5 * (y_pos_1 + y_pos_2), 0.5 * rfeat_inspdia) * r_con REM bke 909.28
+            rfeat_ang = atn2(.5 * (y_pos_1 + y_pos_2), rfeat_inspdia) * r_con REM bke 909.28
 
-            if (y_pos_2 > y_pos_1)
-                rfeat_width = abs(y_pos_2 - y_pos_1)
-            else
-                rfeat_width = abs(y_pos_1 - y_pos_2)
-            endif
-            if (rfeat_val2 > 0.0) REM ps tooth
-                rfeat_width = rfeat_width - probe_diameter
+            if (rfeat_type = 1) REM ps tooth
+                rfeat_width = (abs(y_pos_1 - y_pos_2) - probe_diameter) * cos(rfeat_ang / r_con)
             else REM ps space
-                rfeat_width = rfeat_width + probe_diameter
+                rfeat_width = (abs(y_pos_1 - y_pos_2) + probe_diameter) * cos(rfeat_ang / r_con)
             endif
-            rfeat_width = rfeat_width * cos(rfeat_ang / r_con)
 
-            rfeat_ang = rfeat_nomang - rfeat_ang
+            rfeat_ang = rfeat_ang + rfeat_nomang
 REM         rfeat_ang = CLEN(rfeat_ang, rfeat_nomang)
             if (rfeat_ang < -180.0) rfeat_ang = (rfeat_ang + 360.0)
-            if (rfeat_ang > 180.0) rfeat_ang = (rfeat_ang - 360.0)
-
-            rfeat_ang = -rfeat_ang
-
-            msg = "PROCESS POINT " + str(rfeat_ang) + ", " + str(rfeat_width)
+            if (rfeat_ang > 180.0) rfeat_ang = (rfeat_ang - 360.0)			
+            msg = "PROCESS POINT "+str(rfeat_ang)+", "+str(rfeat_width)
         endif
     endif
     if (do_disp) chart(msg)
     return ' end of RFEAT_TIMING_SUB
-'#endregion @RFEAT_TIMING_SUB
-'#region @RFEAT_TRUE_POS_XY_CIRCLE_SUB
+
 RFEAT_TRUE_POS_XY_CIRCLE_SUB
     rfeat_inspdia = ?		REM diameter
     rfeat_val1 = ?			REM x_location
@@ -1773,7 +1659,7 @@ REM bke 911.09      rfeat_insprad = ((0.5+(0.05*dir))*rfeat_inspdia)+((probe_rad
     if (rfeat_insprad < 0.0) rfeat_insprad = 0.0
 
     rfeat_tmp_ang = fmod(rfeat_val3 + 360, 360)
-    rfeat_tmp_x = rfeat_radius + rfeat_insprad * cos(rfeat_tmp_ang / r_con)
+    rfeat_tmp_x = rfeat_insprad * cos(rfeat_tmp_ang / r_con) + rfeat_radius
     rfeat_tmp_y = rfeat_insprad * sin(rfeat_tmp_ang / r_con)
 
 '   if use_q qbegin(1)
@@ -1793,12 +1679,10 @@ REM bke 911.09      rfeat_insprad = ((0.5+(0.05*dir))*rfeat_inspdia)+((probe_rad
 
     j = 0
     while (j < rfeat_val5)
-        if (j <> 0) rfeat_tmp_ang = rfeat_tmp_ang + cinc
-        rfeat_tmp_x = rfeat_insprad * cos(rfeat_tmp_ang / r_con) + rfeat_radius
-        rfeat_tmp_y = rfeat_insprad * sin(rfeat_tmp_ang / r_con)
-        if (j = 0)
-            move("xy", rfeat_tmp_x, rfeat_tmp_y)
-        else
+        if (j <> 0)
+            rfeat_tmp_ang = rfeat_tmp_ang + cinc
+            rfeat_tmp_x = rfeat_insprad * cos(rfeat_tmp_ang / r_con) + rfeat_radius
+            rfeat_tmp_y = rfeat_insprad * sin(rfeat_tmp_ang / r_con)
             xy_arc_scan(rfeat_coord, cinc / r_con)
         endif
 
@@ -1819,13 +1703,6 @@ REM mpw 1404.23 xy_arc_scan(rfeat_coord, -1.0 * rfeat_val4 / r_con) REM bke 911.
     else
         xy_arc_scan(rfeat_coord, (-cinc * (rfeat_val5 - 1)) / r_con)
     endif
-
-    rfeat_tmp_ang = fmod(rfeat_val3 + 360, 360)
-    rfeat_tmp_x = rfeat_radius + rfeat_insprad * cos(rfeat_tmp_ang / r_con)
-    rfeat_tmp_y = rfeat_insprad * sin(rfeat_tmp_ang / r_con)
-
-    move("xy", rfeat_tmp_x, rfeat_tmp_y)
-
     move("z", rfeat_zrefval)
 
     mx = 0
@@ -1853,8 +1730,7 @@ REM mpw 1404.23 xy_arc_scan(rfeat_coord, -1.0 * rfeat_val4 / r_con) REM bke 911.
     msg = "PROCESS POINT "+str(mx)+" "+str(my)+" "+str(mr * 2.0)+" "+str(rfeat_min_rad * 2.0)+" "+str(rfeat_max_rad * 2.0)
     if (do_disp) chart(msg)
     return ' end of RFEAT_TRUE_POS_XY_CIRCLE_SUB
-'#endregion @RFEAT_TRUE_POS_XY_CIRCLE_SUB
-'#region @RFEAT_PERP_FLAT_SUB
+
 RFEAT_PERP_FLAT_SUB
     rfeat_idod = ?
     rfeat_zrefval = ?
@@ -1874,8 +1750,6 @@ RFEAT_PERP_FLAT_SUB
     else
         scan_increment(get_axis_counts("c"))
     endif
-
-    plane_z_shift = probe_rad * dir - base_height
 
 '   if use_q qbegin(1)
     move("zc", rfeat_zrefval, ref_ang)
@@ -1897,13 +1771,13 @@ RFEAT_PERP_FLAT_SUB
             rad = sqr(((dspall[3] + dspall[0]) ^ 2) + (dspall[1] ^ 2))
             points[0,j] = rad * cos(dspall[6] / R_CON)
             points[1,j] = rad * sin(dspall[6] / R_CON)
-            points[2,j] = dspall[5] + dspall[2] + plane_z_shift
+            points[2,j] = dspall[5] + dspall[2]
             points[3,j] = dspall[6]
 
 '           if use_q qbegin(1)
             inc_move("z", -dir)	
 '           if use_q qdecel()
-            inc_move("xc", ((rfeat_val1 - rfeat_inspdia) / (2.0 * rfeat_pts)), (-360.0 / rfeat_val2))
+            inc_move("xc", ((rfeat_val1 - rfeat_inspdia) / (2.0 * rfeat_pts)), (360.0 / rfeat_val2))
 '           if use_q qgo()
         next j
     else
@@ -1912,7 +1786,7 @@ RFEAT_PERP_FLAT_SUB
 '       inc_move("z", probe[2] + (target_defl * dir))
         setdefl(target_defl, 0.0, 0.0, dir)     REM mpw 1404.23
         display_status("INSPECTING RELATED FEATURE #" + SINT(rf_idx))
-        rfeat_pts = inc_scan("scramble", "cxz", (rfeat_val3 * -360.0), ((rfeat_val1 - rfeat_inspdia) / 2.0), 0.0)
+        rfeat_pts = inc_scan("scramble", "cxz", (rfeat_val3 * 360.0), ((rfeat_val1 - rfeat_inspdia) / 2.0), 0.0)
         inc_move("z", -1.0 * dir)
     endif
 '   if use_q qbegin(1)
@@ -1922,8 +1796,7 @@ RFEAT_PERP_FLAT_SUB
 '   if use_q qgo()
     gosub PLANE_ANALYSIS
     return ' end of RFEAT_PERP_FLAT_SUB
-'#endregion @RFEAT_PERP_FLAT_SUB
-'#region @RFEAT_DIAM_RUNOUT_SUB
+
 RFEAT_DIAM_RUNOUT_SUB
     rfeat_idod = ?		REM internal = 0, external = 1
     rfeat_clearht = ?	REM clearance height
@@ -2049,8 +1922,7 @@ REM bke 911.17 test for defl and backoff to avoid vector slow down hang-up
     msg = "PROCESS POINT "+str(mx)+" "+str(my)+" "+str((2.0 * mr) - (probe_diameter * dir))+" "+str(tir)+" "+str(maxd)+" "+str(mind) REM bke 812.01
     if (do_disp) chart(msg)
     return ' end of RFEAT_DIAM_RUNOUT_SUB
-'#endregion @RFEAT_DIAM_RUNOUT_SUB
-'#region @RFEAT_CONICITY_SUB
+
 RFEAT_CONICITY_SUB
     rfeat_idod = ?		REM internal = 0, external = 1
     rfeat_zrefval = ?	REM clearance height
@@ -2101,8 +1973,7 @@ RFEAT_CONICITY_SUB
 '   if use_q qgo()
     gosub LINE_ANALYSIS
     return ' end of RFEAT_CONICITY_SUB
-'#endregion RFEAT_CONICITY_SUB
-'#region @RFEAT_PROFILE_SUB
+
 RFEAT_PROFILE_SUB
     rfeat_inspdia = ?		REM diameter (only for round profiles)
     rfeat_val1 = ?			REM x_location
@@ -2239,8 +2110,7 @@ RFEAT_PROFILE_SUB
     msg = "PROCESS POINT "+str(min_material)+" "+str(max_material)+" "+str(max_material - min_material)
     if (do_disp) chart(msg)
     return ' end of RFEAT_PROFILE_SUB
-'#endregion RFEAT_PROFILE_SUB
-'#region @RFEAT_TRUE_POS_RECTANGLE_SUB
+
 RFEAT_TRUE_POS_RECTANGLE_SUB
     rfeat_nominal_width = ?         REM nominal width
     rfeat_rec_offset = ?            REM rectangle offset (probably won't be used for a while)
@@ -2319,8 +2189,7 @@ RFEAT_TRUE_POS_RECTANGLE_SUB
 	msg = "PROCESS POINT "+str(true_perp)+", "+str(true_offset)+", "+str(avg_thick)
 	if (do_disp) chart(msg)
     return ' end of RFEAT_TRUE_POS_RECTANGLE_SUB
-'#endregion @RFEAT_TRUE_POS_RECTANGLE_SUB
-'#region @RFEAT_CHAMFER_SUB
+
 RFEAT_CHAMFER_SUB
     rfeat_val1 = ? rem start of test
     rfeat_val4 = ? rem end of test
@@ -2470,8 +2339,7 @@ REM ca_inc = abs(scan_len) / 300.0 * get_axis_counts(2)
     msg = "PROCESS POINT " + str(avg) + ", " + str(variation) + ", " + str(high) + rfeat_szPnts 
 	if (do_disp) chart(msg)
     return ' end of RFEAT_CHAMFER_SUB
-'#endregion @RFEAT_CHAMFER_SUB
-'#region @RFEAT_EDGE_TIMING_SUB
+
 RFEAT_EDGE_TIMING_SUB
     rfeat_inspht = ?
     rfeat_clearht = ?
@@ -2542,8 +2410,7 @@ RFEAT_EDGE_TIMING_SUB
     msg = "PROCESS POINT " + str(rfeat_ang) + ", " + str(y_off[1])
     if (do_disp) chart(msg)
     return ' end of RFEAT_EDGE_TIMING_SUB
-'#endregion @RFEAT_EDGE_TIMING_SUB
-'#region @SYNCHRONIZER_TEETH_SUB
+
 SYNCHRONIZER_TEETH_SUB
     if (insp_dogteeth) REM bke 1207.16 REM bke 1207.26
 '       *******************************************************************************************************************************************
@@ -2672,8 +2539,7 @@ SYNCHRONIZER_TEETH_SUB
 '       if use_q qgo()
     endif
     return ' end of SYNCHRONIZER_TEETH_SUB
-'#endregion @SYNCHRONIZER_TEETH_SUB
-'#region @SURFACE_FINISH_SUB
+
 SURFACE_FINISH_SUB
     if (insp_surf) REM bke 809.19
 '       *******************************************************************************************************************************************
@@ -2868,8 +2734,7 @@ REM back to dia     yloc_adj = (surf_location - y_off[flk]) * sgn(yp[flk])
         endif
     endif
     return ' end of SURFACE_FINISH_SUB
-'#endregion @SURFACE_FINISH_SUB
-'#region @FINISHED_CLEANUP_SUB
+
 FINISHED_CLEANUP_SUB
 '   *******************************************************************************************************************************************
 '   *******************************************************************************************************************************************
@@ -2928,8 +2793,7 @@ FINISHED_CLEANUP_SUB
         gosub PROBE_CHANGE_SUB
     endif
     return ' end of FINISHED_CLEANUP_SUB
-'#endregion @FINISHED_CLEANUP_SUB
-'#region @RETURN_TO_START_SUB
+
 RETURN_TO_START_SUB
     display_status("MOVING BACK TO START POINT")
 
@@ -3006,8 +2870,7 @@ REM calculate c_offset before adjusting z_start so we don't mis-rotate based on 
         endif
     endif
     return ' end of RETURN_TO_START_SUB
-'#endregion @RETURN_TO_START_SUB
-'#region @DEFINED_PROFILE_SETUP_SUB
+
 DEFINED_PROFILE_SETUP_SUB
     if (zref_type > 1) gosub INITIAL_SETUP_SUB REM bke 909.18
 
@@ -3075,8 +2938,7 @@ DEFINED_PROFILE_SETUP_SUB
     next i
     move("yz", yb[0], zb[0])
     return ' end of DEFINED_PROFILE_SETUP_SUB
-'#endregion @DEFINED_PROFILE_SETUP_SUB
-'#region @STANDARD_SETUP_SUB
+
 STANDARD_SETUP_SUB
     move("y", y_pos)
     if (inspect_pl_runout = 1)
@@ -3279,24 +3141,40 @@ STANDARD_SETUP_SUB
                     endswitch
                 else
 				' not setup on centerline
-					cp[flk] = fmod(360.0 + cp[flk] + c_correct_adjust, 360.0)
-                    setup_pos[flk] = cp[flk]
+					cp[flk] = cp[flk] + c_correct_adjust
+					setup_pos[flk] = fmod(360.0 + cp[flk], 360.0)
+                '    setup_pos[flk] = cp[flk]
                 endif
 
 				
                 setup_defl[flk] = "PROCESS DATA SETUP "+str(flk)+" "+str(probe[0])+" "+str(probe[1])+" "+str(probe[2])+" "+str(axis[0])+" "+str(axis[1])+" "+str(axis[2])+" "+str(axis[3])+" "+str(setup_pos[flk])
                 if (do_disp) chart(setup_defl[flk])
 
-' fixes inspecting at specified diameter instead of pitch diameter
+' correct for y setup error - the amount that c would have to move to correct for y defl error
+'                if (use_y_corr = 1)
+'                    y_setup_error = (position[1] - ypbt[flk])  / cos(bha[ynorm < 0] / r_con) ^2 '1003.10 added divide by cos(bha)^2
+'                    c_corr_for_y = -(y_setup_error * r_con) / bcr[ynorm < 0]
+'                    cp[flk] = cp[flk] + c_corr_for_y
+'                    setup_pos[flk] = setup_pos[flk] + c_corr_for_y
+'                else
+'                    if (use_tpa_corr = 1)
+'                        x_contact = position[0] + probe_rad * xnorm
+'                        y_contact = position[1] + probe_rad * ynorm
+'						r_contact = sqr(x_contact^2 + y_contact^2)
+'                        tpa_err = (tpai[flk] - acos(bcr[flk] / r_contact) * r_con) * sgn(y_contact) 
+'                        setup_pos[flk] = setup_pos[flk] + tpa_err
+'                    endif
+'                endif
+
 ' in all cases, setup_pos is the current c axis position, cp[] (could be base tan or centerline here)
 '                setup_pos[flk] = cp[flk]
 
-				' shaver fixed z height - set z_off (inspection height offset) for the land center we are now touching
+' shaver fixed z height - set z_off (inspection height offset) for the land center we are now touching
                 contact_z = 0
                 if((is_shaver) && (zref_type > 1)) REM bke 909.18
                     contact_z = zp[flk] + (probe_rad - target_defl) * zn[flk] ' back out defl and probe to get contact z
                     if(flk = 0)
-						'shift zp[1] to match the new zp[0] - needs to be undeflected here
+'shift zp[1] to match the new zp[0] - needs to be undeflected here
                         zp[1] = contact_z + probe_rad * zn[0]
                     endif
                     if((flk = 0) || this_flank_only)    REM  left flank, or only flank
@@ -3308,16 +3186,16 @@ STANDARD_SETUP_SUB
                     endif
                 endif
 
-				'ps spline - this needs re-tested
+'ps spline - this needs re-tested
                 if (is_ps_spline) setup_pos[flk] = probe[1] + axis[1] + probe_rad * ynorm
 
-				'shaper or broach find right flank top edge, not fixed z height
+'shaper or broach find right flank top edge, not fixed z height
                 if ((is_shaper || is_broach) && (flk = 1) && (flank = 3) && (zref_type < 2))
                     gosub SHAP_RIGHT_EDGE_SUB
                     gosub SHAP_OD_MEASURE_SUB
                 endif
 
-				' shavers - eap adjustment to make sure we see tip falloff
+' shavers - eap adjustment to make sure we see tip falloff
                 if ((is_shaver) && ((flk = 1) || (flank = 1)))
                     for i = 0 to 1
                         if ((flank & (i + 1)) <> 0)
@@ -3326,7 +3204,7 @@ STANDARD_SETUP_SUB
                     next i
                 endif
 
-				'PROCESS LOCATION, 1st flank - (will be left, unless testing right flank only)
+'PROCESS LOCATION, 1st flank - (will be left, unless testing right flank only)
                 if (flk = 0 || (flk = 1 && flank = 2))
                     setmsg[flank = 2] = str(xp[flank = 2]) + " " + str(yp[flank = 2]) + " " + str(zp[flank = 2])
 
@@ -3339,7 +3217,7 @@ STANDARD_SETUP_SUB
                     if (do_indx_log) index_log(msg)
                 endif
 
-				'PROCESS LOCATION, 2nd flank - (will always be right flank, testing both)
+'PROCESS LOCATION, 2nd flank - (will always be right flank, testing both)
                 if (flk = 1 && flank = 3)
                     setmsg[1] = str(xp[1]) + " " + str(yp[1]) + " " + str(zp[1])
                     contact_z_left = zp[0] + (probe_rad - target_defl) * zn[0]
@@ -3357,14 +3235,14 @@ REM bke 1207.11     setup_z_diff = contact_z_right - contact_z_left
                     if (do_indx_log) index_log(msg)
                 endif
 
-				'Process point when we aren't checking index
+'Process point when we aren't checking index
                 if (insp_idx = 0)     '     probe y              probe z          probe x           x axis          y axis       x, y, z base tan        c setup pos
                     msg = "PROCESS POINT "+str(probe[1])+" "+str(probe[2])+" "+str(probe[0])+" "+str(axis[0])+" "+str(axis[1])+" "+setmsg[flk]+" "+str(setup_pos[flk])
                     if (do_disp) chart(msg)
                     if (do_indx_log) index_log(msg)
                 endif
 
-				' move to right flank
+' move to right flank
                 if ((flk = 0) && (flank = 3))
                     move("x", tip_clear(x_clear))
 		            if (straight_sided)
@@ -3406,8 +3284,7 @@ REM bke 1207.11     setup_z_diff = contact_z_right - contact_z_left
         next flk
     endif					REM end_not_plr
     return ' end of STANDARD_SETUP_SUB
-'#endregion @STANDARD_SETUP_SUB
-'#region @END_TEST_SUB	
+
 END_TEST_SUB
     msg = "TEST COMPLETED!"
     display_status(msg)
@@ -3416,18 +3293,15 @@ END_TEST_SUB
     jog_on("xyzct")
     qbegin(0)
     return ' end of END_TEST_SUB
-'#endregion @END_TEST_SUB
-'#region @PROMPT_SUB
+
 PROMPT_SUB
     if (skip_prompts = 0) display(prompt)
     return ' end of PROMPT_SUB
-'#endregion @PROMPT_SUB
-'#region @BMP_PROMPT_SUB
+
 BMP_PROMPT_SUB
     if (skip_prompts = 0) display_bmp(prompt, bmp)
     return ' end of BMP_PROMPT_SUB
-'#endregion @BMP_PROMPT_SUB
-'#region @FLANK_SETUP_SUB
+
 ' new version of FLANK_SETUP_SUB, uses "canned" c++ version in MOTION
 REM  enter this sub ready to touch flank at x_pos, y_pos, z_pos, leave against flank at target deflection
 FLANK_SETUP_SUB
@@ -3439,8 +3313,7 @@ REM in cases were we actually do need c_pos or y_pos to be set (or updated), thi
     c_pos = c_temp  REM updated for all part types except straight sided spline
     y_pos = y_temp  REM updated for striaght sided spline
     return ' end of FLANK_SETUP_SUB
-'#endregion @FLANK_SETUP_SUB
-'#region @ZREF_SETUP_SUB
+
 ZREF_SETUP_SUB
     m~ = str(stime() - st) + ",ZREF_SETUP_SUB"
 ' - purpose - to set fall_off_top, and base_height
@@ -3712,8 +3585,7 @@ ZREF_SETUP_SUB
         endif
     endif
     return ' end of ZREF_SETUP_SUB
-'#endregion @ZREF_SETUP_SUB
-'#region @SHAP_TOP_EDGE_FIND
+
 '****************************************************************************************
 ' to find the top edge of a shaper/broach
 '
@@ -3752,8 +3624,7 @@ SHAP_TOP_EDGE_FIND
 ' todo: could add y error correction to this c_pos
     shap_edge_c[ynorm < 0] = c_pos    'flank setup sub sets c_pos to the right value
     return ' end of SHAP_TOP_EDGE_FIND
-'#endregion @SHAP_TOP_EDGE_FIND
-'#region @INITIAL_SETUP_SUB
+
 INITIAL_SETUP_SUB
     m~ = str(stime() - st) + ",INITIAL SETUP SUB"
     switch (part_type)
@@ -3776,8 +3647,7 @@ REM bke 909.08
         break
     endswitch
     return ' end of INITIAL_SETUP_SUB
-'#endregion @INITIAL_SETUP_SUB
-'#region @DSP_ALL_SUB
+
 DSP_ALL_SUB
     read_dsp(dspall, oversamp)
     probe[0] = dspall[0]
@@ -3788,8 +3658,7 @@ DSP_ALL_SUB
     axis[2] = dspall[5]
     axis[3] = dspall[6]
     return ' end of DSP_ALL_SUB
-'#endregion @DSP_ALL_SUB
-'#region @DSP_POS_SUB
+
 DSP_POS_SUB
     gosub DSP_ALL_SUB
     position[0] = probe[0] + axis[0]
@@ -3797,8 +3666,7 @@ DSP_POS_SUB
     position[2] = probe[2] + axis[2]
     position[3] = axis[3]
     return ' end of DSP_POS_SUB
-'#endregion @DSP_POS_SUB
-'#region @PLANE_ANALYSIS
+
 PLANE_ANALYSIS
     max = -999.9
     min = 999.9
@@ -3822,13 +3690,12 @@ REM read as "probe_y, probe_z, probe_x, x_axis, z_axis, c_axis"
                 r = sqr((rad + x)^2 + y^2)
                 points[0,cur_idx] = r*cos(c / R_CON)
                 points[1,cur_idx] = r*sin(c / R_CON)
-                points[2,cur_idx] = ht + z + plane_z_shift
+                points[2,cur_idx] = ht + z
                 points[3,cur_idx] = c
                 if (points[2,cur_idx] < min) min = points[2,cur_idx]
                 if (points[2,cur_idx] > max) max = points[2,cur_idx]
             next cur_idx
             close #3
-            plane_z_shift = 0
         endif
     else
         for cur_idx = 0 to (rfeat_pts - 1)
@@ -3845,14 +3712,9 @@ REM read as "probe_y, probe_z, probe_x, x_axis, z_axis, c_axis"
         newmin = 999.9
         newmax = -999.9
         lsq_plane(points, rfeat_pts, x_n, y_n, z_n, z_ht)
-        if (z_n < 0.0) ' make sure the normal vector is always pointing UP (z positive)
-            x_n = x_n * -1.0
-            y_n = y_n * -1.0
-            z_n = z_n * -1.0
-        endif
         plane_denom = sqr(x_n^2 + y_n^2 + z_n^2)
         for cur_idx = 0 to (rfeat_pts - 1)
-            dist_from_plane = (((x_n * points[0,cur_idx]) + (y_n * points[1,cur_idx]) + (z_n * points[2,cur_idx]) - z_ht) / plane_denom)
+            dist_from_plane = (((x_n * points[0,cur_idx]) + (y_n * points[1,cur_idx]) + (z_n * points[2, cur_idx]) - z_ht) / plane_denom)
             if (dist_from_plane < newmin) newmin = dist_from_plane
             if (dist_from_plane > newmax) newmax = dist_from_plane
         next cur_idx
@@ -3868,7 +3730,7 @@ REM read as "probe_y, probe_z, probe_x, x_axis, z_axis, c_axis"
             plane_min = 999.9
             plane_max = -999.9
             for cur_idx = 0 to (rfeat_pts - 1)
-                dist_from_plane = (((rfeat_plane_x * points[0,cur_idx]) + (rfeat_plane_y * points[1,cur_idx]) + (rfeat_plane_z * points[2,cur_idx]) - rfeat_plane_off) / plane_denom)
+                dist_from_plane = (((rfeat_plane_x * points[0,cur_idx]) + (rfeat_plane_y * points[1,cur_idx]) + (rfeat_plane_z * points[2, cur_idx]) - rfeat_plane_off) / plane_denom)
                 if (dist_from_plane < plane_min) plane_min = dist_from_plane
                 if (dist_from_plane > plane_max) plane_max = dist_from_plane
             next cur_idx
@@ -3879,8 +3741,7 @@ REM read as "probe_y, probe_z, probe_x, x_axis, z_axis, c_axis"
         if (do_disp) chart(msg)
     endif
     return ' end of PLANE_ANALYSIS
-'#endregion @PLANE_ANALYSIS
-'#region @LINE_ANALYSIS
+
 LINE_ANALYSIS
     fname = get_last_scan_file()
     result = fopen(fname, reading, sequential, 3)
@@ -3909,8 +3770,7 @@ REM read as "probe_y, probe_z, probe_x, z_axis"
         if (do_disp) chart(msg)
     endif
     return ' end of LINE_ANALYSIS
-'#endregion @LINE_ANALYSIS
-'#region @PLR_SUB
+
 PLR_SUB
     slew_speed(min_slew)
     move("y", 0.0)
@@ -3993,8 +3853,7 @@ PLR_SUB
         move("x", x_clear)
     next i
     return ' end of PLR_SUB
-'#endregion @PLR_SUB
-'#region @STD_INDEX_SUB
+
 STD_INDEX_SUB
     for flk = (flank = 2) to (flank <> 1)
         zadj = 0
@@ -4126,8 +3985,7 @@ REM if there was at least 10 microns deflection, normalize probe deflections and
         next i		
     next flk
     return ' end of STD_INDEX_SUB
-'#endregion @STD_INDEX_SUB
-'#region @CL_INDEX_SUB
+
 CL_INDEX_SUB
     dim xn_ioc[2] dim yn_ioc[2] dim zn_ioc[2]
     dim x_ioc[2] dim y_ioc[2] dim z_ioc[2]
@@ -4279,24 +4137,17 @@ REM bke 1111.23 todo: it would probably be cleaner to just transform (rotate) xp
                     nominal_tooth_position = c_inc - (pitch * i * tooth_direction) + cadj - ioff[flk, minf(idx_tooth, num_teeth)]     REM used to reduce confusion where this is used below
 
                     if (find_scal = 0)
-                        if ((flk = 0) || (flank = 2) || ((flk = 1) && (idx_tooth = int(num_teeth))) || prev_was_missing)
-							move("yzc", y_ioc[flk_opp] - backoff_defl * yn_ioc[flk_opp], z_ioc[flk_opp] - backoff_defl * zn_ioc[flk_opp] + zadj, nominal_tooth_position)
-							if use_q qdecel()
-						endif
+                        if ((flk = 0) || (flank = 2) || ((flk = 1) && (idx_tooth = int(num_teeth))) || prev_was_missing) move("yzc", y_ioc[flk_opp] - backoff_defl * yn_ioc[flk_opp], z_ioc[flk_opp] - backoff_defl * zn_ioc[flk_opp] + zadj, nominal_tooth_position)
                     endif
 
                     if (prev_was_missing)
-						if(find_scal = 0)
-'							if use_q qgo()
-'							if use_q qbegin(1)
-'							move("x", x_ioc[flk_opp] - backoff_defl * xn_ioc[flk_opp])
-'							if use_q qdecel()
-						endif
+                        if use_q qgo()
+                        if use_q qbegin(1)
+                        move("x", x_ioc[flk_opp] - backoff_defl * xn_ioc[flk_opp])
+                        if use_q qdecel()
                         prev_was_missing = 0
                     else
-						if(find_scal = 0)
-							if (use_q && ((flk = 0) || (flank = 2) || (idx_tooth = int(num_teeth)))) qdecel()
-						endif
+                        if (use_q && ((flk = 0) || (flank = 2) || (idx_tooth = int(num_teeth)))) qdecel()
                     endif
 
                     snapshot_msg = "INDEX, " + flk_lbl[flk] + ", TOOTH, " + SINT(fmod(idx_tooth, num_teeth) + 1)
@@ -4373,8 +4224,7 @@ REM if there was at least 10 microns deflection, normalize probe deflections and
 
     if debug_file close #1
     return ' end of CL_INDEX_SUB
-'#endregion @CL_INDEX_SUB
-'#region @INDEX_SCAN_SUB
+
 INDEX_SCAN_SUB
     z_scallop_scan = 1.5 * feedrate
     if (z_scallop_scan = 0)
@@ -4447,8 +4297,7 @@ INDEX_SCAN_SUB
     meas_feedrate = scallop_scan(z_scallop_scan * scallop_scan_dir, c_scallop_length * scallop_scan_dir, int(z_scallop_scan * scallop_pts_per_mm), feedrate, probe, axis, snapshot_msg)
 
     return ' end of INDEX_SCAN_SUB
-'#endregion @INDEX_SCAN_SUB
-'#region @UNLOAD_PROBE_SUB
+
 UNLOAD_PROBE_SUB
     read_dsp(probe, oversamp)
     if (abs(probe[1]) > 0.015)
@@ -4456,16 +4305,14 @@ UNLOAD_PROBE_SUB
         inc_move("c", -c_inc)
     endif
     return ' end of UNLOAD_PROBE_SUB
-'#endregion @UNLOAD_PROBE_SUB
-'#region @UNLOAD_PROBE_X_SUB
+
 UNLOAD_PROBE_X_SUB
     read_dsp(probe, oversamp)
     if (abs(probe[0]) > 0.015)
         inc_move("x", probe[0])
     endif
     return ' end of UNLOAD_PROBE_X_SUB
-'#endregion @UNLOAD_PROBE_X_SUB
-'#region @STEPANG_SUB
+
 STEPANG_SUB
     m~ = str(stime() - st) + ",INSPECTING TOOTH " + SINT(inspection_thread[i]) + " STEP ANGLE"
     c_inc = edge_c + (insp_rad - edge_rad) * tan(faceangle / r_con) * ANG_PERZ(tlead) - pitch * (inspection_thread[i] - 1) * tooth_direction REM 802.12
@@ -4491,8 +4338,7 @@ REM move("xyz", sa_xb, sa_yb, sa_zb, sa_zb)
     inc_move("xyz", sa_xb - sa_xp, sa_yb - sa_yp, sa_zb - sa_zp)				
     if (tlead <> 0.0) move("x", x_clear)
     return ' end of STEPANG_SUB
-'#endregion @STEPANG_SUB
-'#region @TOOTH_TIP_SCAN_SUB
+
 TOOTH_TIP_SCAN_SUB
     m~ = str(stime() - st) + ",INSPECTING TOOTH " + SINT(scan_tooth) + " TIP SCAN"
     display_status("MOVING TO INSPECT TIP SCAN")
@@ -4512,8 +4358,7 @@ TOOTH_TIP_SCAN_SUB
     slew_speed(max_slew)
     inc_move("xyz", ca_xb_sub - ca_xp_sub, ca_yb_sub - ca_yp_sub, ca_zb_sub - ca_zp_sub)
     return ' end of TOOTH_TIP_SCAN_SUB
-'#endregion @TOOTH_TIP_SCAN_SUB
-'#region @DEF_PROFILE_SETUP
+
 DEF_PROFILE_SETUP
     if (find_gap)
 		find_tooth_gap(x_pos - backoff_defl * xnorm, num_teeth) REM bke 911.09
@@ -4526,8 +4371,7 @@ DEF_PROFILE_SETUP
 	display_status("ALIGNING PROFILE")
 	find_profile(ie_type)
     return ' end of DEF_PROFILE_SETUP
-'#endregion @DEF_PROFILE_SETUP
-'#region @SS_PS_SETUP
+
 SS_PS_SETUP   REM  jjm 812.10  Corrected Name  
     display_status("FINDING STRAIGHT SIDED SPLINE SPACE LOCATION")
     read_dsp(axis, oversamp)
@@ -4633,8 +4477,7 @@ REM bke 911.17 add probe offsets here instead
 REM bke 912.07 move("xy", x_pos, yp[0])	
     move("xy", axis[0], axis[1])
     return ' end of SS_PS_SETUP
-'#endregion @SS_PS_SETUP
-'#region @HELIX_SCAN_SUB
+
 HELIX_SCAN_SUB
     m~ = str(stime() - st) + ",INSPECTING TOOTH " + SINT(scan_tooth) + " " + scan_label    
     temp_lead_current = 0.0
@@ -4759,8 +4602,7 @@ HELIX_SCAN_SUB
     next lc
     temp_lead_current = temp_lead_current / nlocs
     return ' end of HELIX_SCAN_SUB
-'#endregion @HELIX_SCAN_SUB
-'#region @PROFILE_SCAN_SUB
+
 PROFILE_SCAN_SUB
 ' c_scan must be properly set before this call
 ' helix_y_per_z must be set before this call and will always be zero unless performing feed scallop profile along measured helix
@@ -4925,15 +4767,13 @@ REM bke/jjm 810.01      zrake_adj = get_broach_z_adj(sap_diam, tip_diameter, thr
         if (do_disp) chart("PROCESS FILE")
     next lc
     return ' end of PROFILE_SCAN_SUB
-'#endregion @PROFILE_SCAN_SUB
-'#region @PROBE_CHANGE_SUB
+
 PROBE_CHANGE_SUB
     probe_diameter = change_rprobe_id(cur_probe_tip)
     probe_rad = .5 * probe_diameter
     probe_id = get_probe_name()
     return ' PROBE_CHANGE_SUB
-'#endregion @PROBE_CHANGE_SUB
-'#region @SHAP_RIGHT_EDGE_SUB
+
 SHAP_RIGHT_EDGE_SUB
 ' find_edge returns transverse z height of the edge.
     shap_edge_z[ynorm < 0] = find_edge("up", lead[ynorm < 0], facewidth, bha[ynorm < 0])
@@ -4965,8 +4805,7 @@ SHAP_RIGHT_EDGE_SUB
         setup_pos[1] = fmod(360.0 + shap_edge_c[1] + (shap_edge_z[1] - shap_edge_z[0]) * ANG_PERZ(tlead), 360.0)
     endif
     return ' end of SHAP_RIGHT_EDGE_SUB
-'#endregion @SHAP_RIGHT_EDGE_SUB
-'#region @SHAP_OD_MEASURE_SUB
+
 SHAP_OD_MEASURE_SUB
     edge_ta = tpai_x2 - fmod(shap_edge_c[1] - shap_edge_c[0] + 360.0, 360.0) REM bke 809.04
     edge_ta = tpai_x2 - fmod(setup_pos[1] - setup_pos[0] + 360.0, 360.0) 'tlt 912.12 setup_pos' are transverse
@@ -5016,8 +4855,7 @@ REM     edge_ta = tpai_x2 - fmod(shap_edge_c[1] - shap_edge_c[0] + 360.0, 360.0)
     msg = "PROCESS SIZE " + str(tip_diameter)
     if (do_disp) chart(msg)
     return ' end of SHAP_OD_MEASURE_SUB
-'#endregion @SHAP_OD_MEASURE_SUB
-'#region @XFORM_BT_2_CL
+
 XFORM_BT_2_CL
     if (bt_cl = 0)
         bt_cl = 1
@@ -5062,8 +4900,7 @@ XFORM_BT_2_CL
         transform(rotate, xp[1], yp[1])
     endif
     return ' end of XFORM_BT_2_CL
-'#endregion @XFORM_BT_2_CL
-'#region @XFORM_CL_2_BT
+
 XFORM_CL_2_BT
     if (bt_cl = 1)
         bt_cl = 0
@@ -5105,19 +4942,17 @@ XFORM_CL_2_BT
         transform(rotate, xp[1], yp[1])
     endif
     return ' end of XFORM_CL_2_BT
-'#endregion @XFORM_CL_2_BT
-'#region @ARC_TO_SUB
+
 ARC_TO_SUB
     arc_move(arc_to_rad, arc_to_y, arc_to_z, arc_to_c)
     return ' end of ARC_TO_SUB
-'#endregion @ARC_TO_SUB
 
 DEFFN INVO(tpa_deg) = (tan(tpa_deg / r_con) - tpa_deg / r_con) * r_con
 DEFFN ANG_PERZ(ld) = -360.0 / (ld + (ld = 0.0)) * (ld <> 0)
 DEFFN CLEN(ce, cs) = (ce - cs) - 360.0 * sgn(ce - cs) * (abs(ce - cs) > 180.0)
 DEFFN ZBOT_REF(zvar) = zvar + facewidth * (zvar < 0.0)
 DEFFN SINT(n2s) = left(str(n2s), 1 + log10(n2s)) REM bke 804.14
-'#region @SETUP_FILE_SUB
+
 SETUP_FILE_SUB
 	filename = "c:\penta\data\indexdat.csv"
 '	filename = filename + date + "-"
@@ -5132,12 +4967,13 @@ SETUP_FILE_SUB
 		end
 	endif
 	return
-'#endregion @SETUP_FILE_SUB
-'#region @PRINT_POS_SUB	
+
+	
 PRINT_POS_SUB
 	GOSUB DSP_POS_SUB
 	fprint #2, flk; ","; i + 1; ","; position[0]; ","; position[1]; ","; position[2]; ","; position[3]; chr(13); chr(10)
 	return
-'#endregion @PRINT_POS_SUB
+
 
 REM std_gear.bas end (keep null '00' at end of binary file).
+ 
